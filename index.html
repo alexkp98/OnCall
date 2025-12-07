@@ -160,13 +160,6 @@
         max-width: 420px;
         width: 100%;
       }
-      .monday-label {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-        font-size: 0.8rem;
-        margin-bottom: 0.25rem;
-      }
     </style>
   </head>
   <body>
@@ -227,7 +220,7 @@
         <table id="contactsTable">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>On-call / Name</th>
               <th>Team</th>
               <th>Phone</th>
               <th>Start dates</th>
@@ -246,7 +239,7 @@
         <table id="emergencyTable">
           <thead>
             <tr>
-              <th>Name</th>
+              <th>On-call / Name</th>
               <th>Contact</th>
               <th>Email</th>
               <th>Start dates</th>
@@ -294,8 +287,6 @@
             <option value="MBT Server/Citrix">MBT Server/Citrix</option>
             <option value="MBT Database (DB)">MBT Database (DB)</option>
           </select>
-          <label>Active start dates (Mondays)</label>
-          <div id="contactDates"></div>
           <div style="margin-top: 0.75rem">
             <button type="submit" class="btn-primary">Save</button>
           </div>
@@ -310,8 +301,6 @@
           <input id="ePhone" type="text" />
           <label for="eEmail">Email</label>
           <input id="eEmail" type="email" />
-          <label>Active start dates (Mondays)</label>
-          <div id="emergencyDates"></div>
           <div style="margin-top: 0.75rem">
             <button type="submit" class="btn-primary">Save</button>
           </div>
@@ -320,412 +309,566 @@
     </div>
 
     <script>
-      // Data (start empty; use Import to load JSON, Export to save)
-      const contacts = [];
-      const emergencyContacts = [];
+      document.addEventListener("DOMContentLoaded", function () {
+        // Data (start empty; load via Import, or edit in UI then Export)
+        const contacts = [
+          {
+            name: "Muzaffer Gurkan Ozel",
+            phone: "+90 532 059 63 63",
+            team: "MBT Network/DataCenter",
+            startDates: ["2025-12-08", "2025-12-29"],
+          },
+          {
+            name: "Abdullah Isilar",
+            phone: "+90 537 400 90 17",
+            team: "MBT Storage/VM",
+            startDates: ["2025-12-08", "2025-12-22"],
+          },
+          {
+            name: "Tahir Evren Kiral",
+            phone: "+90 549 549 04 40",
+            team: "MBT Server/Citrix",
+            startDates: ["2025-12-08", "2025-12-22"],
+          },
+          {
+            name: "Burak Koc",
+            phone: "+90 505 260 82 80",
+            team: "MBT Database (DB)",
+            startDates: [
+              "2025-12-08",
+              "2025-12-15",
+              "2025-12-22",
+              "2025-12-29",
+            ],
+          },
+          {
+            name: "Santhoshkumar Kalluri",
+            phone: "+91 888 654 63 33",
+            team: "MBT Database (DB)",
+            startDates: [],
+          },
+          {
+            name: "Bilal Oner",
+            phone: "+90 533 211 72 11",
+            team: "MBT Network/DataCenter",
+            startDates: ["2025-12-15"],
+          },
+          {
+            name: "Halit Naziroglu",
+            phone: "+90 534 200 12 51",
+            team: "MBT Network/DataCenter",
+            startDates: ["2025-12-22"],
+          },
+          {
+            name: "Mustafa Sari",
+            phone: "+90 530 523 91 07",
+            team: "MBT Storage/VM",
+            startDates: ["2025-12-15", "2025-12-29"],
+          },
+          {
+            name: "Ibrahim Ozer",
+            phone: "+90 532 407 56 50",
+            team: "MBT Server/Citrix",
+            startDates: ["2025-12-15", "2025-12-29"],
+          },
+        ];
+        const emergencyContacts = [
+          {
+            name: "Sercan Eren",
+            phone: "+90 543 534 92 29",
+            email: "-",
+            startDates: ["2025-12-08"],
+          },
+          {
+            name: "Onur Aydin",
+            phone: "+ 90 530 940 53 84 / +90 532 552 71 61",
+            email: "-",
+            startDates: ["2025-12-29"],
+          },
+          {
+            name: "Aykut Erdonmez",
+            phone: "+90 538 276 92 36",
+            email: "-",
+            startDates: [],
+          },
+          {
+            name: "Ayhan Ay",
+            phone: "+90 536 308 18 01",
+            email: "-",
+            startDates: [],
+          },
+          {
+            name: "Murat Buyukozer",
+            phone: "+90 532 272 34 21",
+            email: "-",
+            startDates: [],
+          },
+          {
+            name: "Mehmet Akif Acar",
+            phone: "+00 000 000 00 00",
+            email: "mehmet_akif.acar@daimler.com",
+            startDates: ["2025-12-15"],
+          },
+          {
+            name: "Cemal Olke",
+            phone: "-",
+            email: "cemal.olke@daimlertruck.com",
+            startDates: ["2025-12-22"],
+          },
+        ];
 
-      // Date helpers
-      function getNextMondays(count = 4) {
-        const mondays = [];
-        const today = new Date();
-        const date = new Date(
-          today.getFullYear(),
-          today.getMonth(),
-          today.getDate()
-        );
-        const day = date.getDay();
-        const diff = (1 - day + 7) % 7;
-        date.setDate(date.getDate() + diff);
-        for (let i = 0; i < count; i++) {
-          const d = new Date(date);
-          d.setDate(date.getDate() + i * 7);
-          mondays.push(d);
-        }
-        return mondays;
-      }
-
-      function formatDate(d) {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const day = String(d.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-      }
-
-      function parseDate(str) {
-        const [y, m, d] = str.split("-").map(Number);
-        return new Date(y, m - 1, d);
-      }
-
-      function formatDDMMYYYY(d) {
-        const day = String(d.getDate()).padStart(2, "0");
-        const month = String(d.getMonth() + 1).padStart(2, "0");
-        const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
-      }
-
-      // Monday select
-      const mondaySelect = document.getElementById("mondaySelect");
-      getNextMondays().forEach((d, idx) => {
-        const opt = document.createElement("option");
-        opt.value = formatDate(d);
-        opt.textContent = d.toDateString();
-        if (idx === 0) opt.selected = true;
-        mondaySelect.appendChild(opt);
-      });
-
-      // Checkbox helpers
-      function fillMondayCheckboxes(containerId, selected = []) {
-        const container = document.getElementById(containerId);
-        container.innerHTML = "";
-        const mondays = getNextMondays(4);
-        mondays.forEach((d) => {
-          const value = formatDate(d);
-          const label = document.createElement("label");
-          label.className = "monday-label";
-          const cb = document.createElement("input");
-          cb.type = "checkbox";
-          cb.value = value;
-          if (selected.includes(value)) cb.checked = true;
-          label.appendChild(cb);
-          label.appendChild(document.createTextNode(d.toDateString()));
-          container.appendChild(label);
-        });
-      }
-
-      function getCheckedMondays(containerId) {
-        const cbs = Array.from(
-          document.querySelectorAll(`#${containerId} input[type="checkbox"]`)
-        );
-        return cbs.filter((cb) => cb.checked).map((cb) => cb.value);
-      }
-
-      // Modal refs
-      const modalOverlay = document.getElementById("modalOverlay");
-      const modalTitle = document.getElementById("modalTitle");
-      const contactFormEl = document.getElementById("contactForm");
-      const emergencyFormEl = document.getElementById("emergencyForm");
-
-      function openModal(type) {
-        if (type === "contact") {
-          modalTitle.textContent = "Contact";
-          contactFormEl.style.display = "block";
-          emergencyFormEl.style.display = "none";
-        } else {
-          modalTitle.textContent = "Emergency contact";
-          contactFormEl.style.display = "none";
-          emergencyFormEl.style.display = "block";
-        }
-        modalOverlay.style.display = "flex";
-      }
-
-      function closeModal() {
-        modalOverlay.style.display = "none";
-      }
-
-      document
-        .getElementById("closeModalBtn")
-        .addEventListener("click", closeModal);
-      modalOverlay.addEventListener("click", (e) => {
-        if (e.target === modalOverlay) closeModal();
-      });
-
-      // Render tables
-      function renderContacts() {
-        const tbody = document.querySelector("#contactsTable tbody");
-        tbody.innerHTML = "";
-        contacts.forEach((c, index) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${c.name || ""}</td>
-            <td><span class="badge">${c.team || ""}</span></td>
-            <td>${c.phone || ""}</td>
-            <td>
-              <div class="date-tags">
-                ${(c.startDates || [])
-                  .map((d) => `<span class="date-tag">${d}</span>`)
-                  .join("")}
-              </div>
-            </td>
-            <td>
-              <button class="btn-secondary" data-type="contact" data-index="${index}">Edit</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      function renderEmergency() {
-        const tbody = document.querySelector("#emergencyTable tbody");
-        tbody.innerHTML = "";
-        emergencyContacts.forEach((c, index) => {
-          const tr = document.createElement("tr");
-          tr.innerHTML = `
-            <td>${c.name || ""}</td>
-            <td>${c.phone || ""}</td>
-            <td>${c.email || ""}</td>
-            <td>
-              <div class="date-tags">
-                ${(c.startDates || [])
-                  .map((d) => `<span class="date-tag">${d}</span>`)
-                  .join("")}
-              </div>
-            </td>
-            <td>
-              <button class="btn-secondary" data-type="emergency" data-index="${index}">Edit</button>
-            </td>
-          `;
-          tbody.appendChild(tr);
-        });
-      }
-
-      renderContacts();
-      renderEmergency();
-
-      // Add buttons
-      document.getElementById("addContactBtn").addEventListener("click", () => {
-        document.getElementById("contactIndex").value = -1;
-        document.getElementById("cName").value = "";
-        document.getElementById("cPhone").value = "";
-        document.getElementById("cTeam").value = "MBT Network/DataCenter";
-        fillMondayCheckboxes("contactDates", []);
-        openModal("contact");
-      });
-
-      document
-        .getElementById("addEmergencyBtn")
-        .addEventListener("click", () => {
-          document.getElementById("emIndex").value = -1;
-          document.getElementById("eName").value = "";
-          document.getElementById("ePhone").value = "";
-          document.getElementById("eEmail").value = "";
-          fillMondayCheckboxes("emergencyDates", []);
-          openModal("emergency");
-        });
-
-      // Edit buttons
-      document
-        .querySelector("#contactsTable tbody")
-        .addEventListener("click", (e) => {
-          if (e.target.tagName === "BUTTON") {
-            const idx = parseInt(e.target.dataset.index, 10);
-            const c = contacts[idx];
-            document.getElementById("contactIndex").value = idx;
-            document.getElementById("cName").value = c.name || "";
-            document.getElementById("cPhone").value = c.phone || "";
-            document.getElementById("cTeam").value =
-              c.team || "MBT Network/DataCenter";
-            fillMondayCheckboxes("contactDates", c.startDates || []);
-            openModal("contact");
+        // Date helpers
+        function getNextMondays(count = 4) {
+          const mondays = [];
+          const today = new Date();
+          const date = new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate()
+          );
+          const day = date.getDay();
+          const diff = (1 - day + 7) % 7;
+          date.setDate(date.getDate() + diff);
+          for (let i = 0; i < count; i++) {
+            const d = new Date(date);
+            d.setDate(date.getDate() + i * 7);
+            mondays.push(d);
           }
+          return mondays;
+        }
+
+        function formatDate(d) {
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const day = String(d.getDate()).padStart(2, "0");
+          return `${year}-${month}-${day}`;
+        }
+
+        function parseDate(str) {
+          const [y, m, d] = str.split("-").map(Number);
+          return new Date(y, m - 1, d);
+        }
+
+        function formatDDMMYYYY(d) {
+          const day = String(d.getDate()).padStart(2, "0");
+          const month = String(d.getMonth() + 1).padStart(2, "0");
+          const year = d.getFullYear();
+          return `${day}-${month}-${year}`;
+        }
+
+        // Monday select
+        const mondaySelect = document.getElementById("mondaySelect");
+        getNextMondays().forEach((d, idx) => {
+          const opt = document.createElement("option");
+          opt.value = formatDate(d);
+          opt.textContent = d.toDateString();
+          if (idx === 0) opt.selected = true;
+          mondaySelect.appendChild(opt);
         });
 
-      document
-        .querySelector("#emergencyTable tbody")
-        .addEventListener("click", (e) => {
-          if (e.target.tagName === "BUTTON") {
-            const idx = parseInt(e.target.dataset.index, 10);
-            const c = emergencyContacts[idx];
-            document.getElementById("emIndex").value = idx;
-            document.getElementById("eName").value = c.name || "";
-            document.getElementById("ePhone").value = c.phone || "";
-            document.getElementById("eEmail").value = c.email || "";
-            fillMondayCheckboxes("emergencyDates", c.startDates || []);
-            openModal("emergency");
+        // Modal refs
+        const modalOverlay = document.getElementById("modalOverlay");
+        const modalTitle = document.getElementById("modalTitle");
+        const contactFormEl = document.getElementById("contactForm");
+        const emergencyFormEl = document.getElementById("emergencyForm");
+
+        function openModal(type) {
+          if (type === "contact") {
+            modalTitle.textContent = "Contact";
+            contactFormEl.style.display = "block";
+            emergencyFormEl.style.display = "none";
+          } else {
+            modalTitle.textContent = "Emergency contact";
+            contactFormEl.style.display = "none";
+            emergencyFormEl.style.display = "block";
           }
+          modalOverlay.style.display = "flex";
+        }
+
+        function closeModal() {
+          modalOverlay.style.display = "none";
+        }
+
+        document
+          .getElementById("closeModalBtn")
+          .addEventListener("click", closeModal);
+        modalOverlay.addEventListener("click", (e) => {
+          if (e.target === modalOverlay) closeModal();
         });
 
-      // Save handlers
-      document.getElementById("contactForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const index = parseInt(
-          document.getElementById("contactIndex").value,
-          10
-        );
-        const name = document.getElementById("cName").value.trim();
-        const phone = document.getElementById("cPhone").value.trim();
-        const team = document.getElementById("cTeam").value;
-        const startDates = getCheckedMondays("contactDates");
-        if (!name) return;
-        const obj = { name, phone, team, startDates };
-        if (index === -1) contacts.push(obj);
-        else contacts[index] = obj;
+        // Render tables with weekly on-call checkboxes
+        function renderContacts() {
+          const tbody = document.querySelector("#contactsTable tbody");
+          const monday = mondaySelect.value;
+          tbody.innerHTML = "";
+          contacts.forEach((c, index) => {
+            const isOnCall =
+              Array.isArray(c.startDates) && c.startDates.includes(monday);
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>
+                <label>
+                  <input type="checkbox" class="contact-oncall" data-index="${index}" ${
+              isOnCall ? "checked" : ""
+            }>
+                  ${c.name || ""}
+                </label>
+              </td>
+              <td><span class="badge">${c.team || ""}</span></td>
+              <td>${c.phone || ""}</td>
+              <td>
+                <div class="date-tags">
+                  ${(c.startDates || [])
+                    .map((d) => `<span class="date-tag">${d}</span>`)
+                    .join("")}
+                </div>
+              </td>
+              <td>
+                <button class="btn-secondary" data-type="contact" data-index="${index}">Edit</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
+        function renderEmergency() {
+          const tbody = document.querySelector("#emergencyTable tbody");
+          const monday = mondaySelect.value;
+          tbody.innerHTML = "";
+          emergencyContacts.forEach((c, index) => {
+            const isOnCall =
+              Array.isArray(c.startDates) && c.startDates.includes(monday);
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>
+                <label>
+                  <input type="checkbox" class="emergency-oncall" data-index="${index}" ${
+              isOnCall ? "checked" : ""
+            }>
+                  ${c.name || ""}
+                </label>
+              </td>
+              <td>${c.phone || ""}</td>
+              <td>${c.email || ""}</td>
+              <td>
+                <div class="date-tags">
+                  ${(c.startDates || [])
+                    .map((d) => `<span class="date-tag">${d}</span>`)
+                    .join("")}
+                </div>
+              </td>
+              <td>
+                <button class="btn-secondary" data-type="emergency" data-index="${index}">Edit</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        }
+
         renderContacts();
-        closeModal();
-      });
+        renderEmergency();
 
-      document
-        .getElementById("emergencyForm")
-        .addEventListener("submit", (e) => {
-          e.preventDefault();
-          const index = parseInt(document.getElementById("emIndex").value, 10);
-          const name = document.getElementById("eName").value.trim();
-          const phone = document.getElementById("ePhone").value.trim();
-          const email = document.getElementById("eEmail").value.trim();
-          const startDates = getCheckedMondays("emergencyDates");
-          if (!name) return;
-          const obj = { name, phone, email, startDates };
-          if (index === -1) emergencyContacts.push(obj);
-          else emergencyContacts[index] = obj;
+        mondaySelect.addEventListener("change", () => {
+          renderContacts();
           renderEmergency();
-          closeModal();
         });
 
-      // Text for Monday
-      function buildTextScheduleForMonday(mondayStr) {
-        const monday = parseDate(mondayStr);
-        const nextMonday = new Date(monday);
-        nextMonday.setDate(monday.getDate() + 7);
-        const startStr = formatDDMMYYYY(monday) + " (17:15) CET";
-        const endStr = formatDDMMYYYY(nextMonday) + " (07:30) CET";
+        // Add buttons
+        document
+          .getElementById("addContactBtn")
+          .addEventListener("click", () => {
+            document.getElementById("contactIndex").value = -1;
+            document.getElementById("cName").value = "";
+            document.getElementById("cPhone").value = "";
+            document.getElementById("cTeam").value = "MBT Network/DataCenter";
+            openModal("contact");
+          });
 
-        const activeContacts = contacts.filter(
-          (c) => Array.isArray(c.startDates) && c.startDates.includes(mondayStr)
-        );
-        const activeEmergencies = emergencyContacts.filter(
-          (c) => Array.isArray(c.startDates) && c.startDates.includes(mondayStr)
-        );
+        document
+          .getElementById("addEmergencyBtn")
+          .addEventListener("click", () => {
+            document.getElementById("emIndex").value = -1;
+            document.getElementById("eName").value = "";
+            document.getElementById("ePhone").value = "";
+            document.getElementById("eEmail").value = "";
+            openModal("emergency");
+          });
 
-        const lines = [];
-        lines.push("Hello Service Desk,");
-        lines.push(
-          "Please find the updated On-Call Support for MB Turkey Wintel Monitoring Services in your calendar."
-        );
-        lines.push("");
-
-        activeContacts.forEach((c, idx) => {
-          lines.push("Service:      " + (c.team || ""));
-          lines.push("Colleague:    " + (c.name || ""));
-          lines.push("Start time:   " + startStr);
-          lines.push("End time:     " + endStr);
-          if (c.phone) lines.push("Phone:        " + c.phone);
-          if (idx !== activeContacts.length - 1) lines.push("");
-        });
-
-        lines.push("");
-        lines.push("Emergency Case First contact Daimler:");
-        activeEmergencies.forEach((c) => {
-          if (!c.phone && !c.email) return;
-          lines.push(c.name || "");
-          if (c.phone) lines.push(c.phone);
-          if (c.email) lines.push(c.email);
-        });
-
-        return lines.join("\n");
-      }
-
-      // Download helper
-      function downloadFile(filename, content, mime) {
-        const blob = new Blob([content], { type: mime });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-      }
-
-      // ICS
-      function buildIcs(startMonday) {
-        const uid = Date.now() + "@oncall";
-        const dt = startMonday.replace(/-/g, "");
-        const ics =
-          "BEGIN:VCALENDAR\n" +
-          "VERSION:2.0\n" +
-          "PRODID:-//OnCall//EN\n" +
-          "CALSCALE:GREGORIAN\n" +
-          "METHOD:PUBLISH\n" +
-          "BEGIN:VEVENT\n" +
-          "UID:" +
-          uid +
-          "\n" +
-          "DTSTART;VALUE=DATE:" +
-          dt +
-          "\n" +
-          "DTEND;VALUE=DATE:" +
-          dt +
-          "\n" +
-          "SUMMARY:On-call schedule\n" +
-          "DESCRIPTION:" +
-          buildTextScheduleForMonday(startMonday).replace(/\n/g, "\\n") +
-          "\n" +
-          "END:VEVENT\n" +
-          "END:VCALENDAR";
-        return ics;
-      }
-
-      // Export / Import JSON
-      function exportData() {
-        const data = { contacts, emergencyContacts };
-        const json = JSON.stringify(data, null, 2);
-        downloadFile("oncall-data.json", json, "application/json");
-      }
-
-      function importData(file) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const parsed = JSON.parse(e.target.result);
-            if (
-              Array.isArray(parsed.contacts) &&
-              Array.isArray(parsed.emergencyContacts)
-            ) {
-              contacts.length = 0;
-              contacts.push(...parsed.contacts);
-              emergencyContacts.length = 0;
-              emergencyContacts.push(...parsed.emergencyContacts);
-              renderContacts();
-              renderEmergency();
-            } else {
-              alert("Invalid file format.");
+        // Edit buttons
+        document
+          .querySelector("#contactsTable tbody")
+          .addEventListener("click", (e) => {
+            if (e.target.tagName === "BUTTON") {
+              const idx = parseInt(e.target.dataset.index, 10);
+              const c = contacts[idx];
+              document.getElementById("contactIndex").value = idx;
+              document.getElementById("cName").value = c.name || "";
+              document.getElementById("cPhone").value = c.phone || "";
+              document.getElementById("cTeam").value =
+                c.team || "MBT Network/DataCenter";
+              openModal("contact");
             }
-          } catch {
-            alert("Could not read file.");
+          });
+
+        document
+          .querySelector("#emergencyTable tbody")
+          .addEventListener("click", (e) => {
+            if (e.target.tagName === "BUTTON") {
+              const idx = parseInt(e.target.dataset.index, 10);
+              const c = emergencyContacts[idx];
+              document.getElementById("emIndex").value = idx;
+              document.getElementById("eName").value = c.name || "";
+              document.getElementById("ePhone").value = c.phone || "";
+              document.getElementById("eEmail").value = c.email || "";
+              openModal("emergency");
+            }
+          });
+
+        // Save handlers (no date editing here)
+        document
+          .getElementById("contactForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            const index = parseInt(
+              document.getElementById("contactIndex").value,
+              10
+            );
+            const name = document.getElementById("cName").value.trim();
+            const phone = document.getElementById("cPhone").value.trim();
+            const team = document.getElementById("cTeam").value;
+            if (!name) return;
+            const existing =
+              index === -1 ? { startDates: [] } : contacts[index];
+            const obj = {
+              name,
+              phone,
+              team,
+              startDates: existing.startDates || [],
+            };
+            if (index === -1) contacts.push(obj);
+            else contacts[index] = obj;
+            renderContacts();
+            closeModal();
+          });
+
+        document
+          .getElementById("emergencyForm")
+          .addEventListener("submit", (e) => {
+            e.preventDefault();
+            const index = parseInt(
+              document.getElementById("emIndex").value,
+              10
+            );
+            const name = document.getElementById("eName").value.trim();
+            const phone = document.getElementById("ePhone").value.trim();
+            const email = document.getElementById("eEmail").value.trim();
+            if (!name) return;
+            const existing =
+              index === -1 ? { startDates: [] } : emergencyContacts[index];
+            const obj = {
+              name,
+              phone,
+              email,
+              startDates: existing.startDates || [],
+            };
+            if (index === -1) emergencyContacts.push(obj);
+            else emergencyContacts[index] = obj;
+            renderEmergency();
+            closeModal();
+          });
+
+        // Update startDates from weekly checkboxes
+        function updateStartDatesFromCheckboxes(monday) {
+          document.querySelectorAll(".contact-oncall").forEach((cb) => {
+            const idx = parseInt(cb.dataset.index, 10);
+            const c = contacts[idx];
+            if (!Array.isArray(c.startDates)) c.startDates = [];
+            const has = c.startDates.includes(monday);
+            if (cb.checked && !has) c.startDates.push(monday);
+            if (!cb.checked && has) {
+              c.startDates = c.startDates.filter((d) => d !== monday);
+            }
+          });
+          document.querySelectorAll(".emergency-oncall").forEach((cb) => {
+            const idx = parseInt(cb.dataset.index, 10);
+            const c = emergencyContacts[idx];
+            if (!Array.isArray(c.startDates)) c.startDates = [];
+            const has = c.startDates.includes(monday);
+            if (cb.checked && !has) c.startDates.push(monday);
+            if (!cb.checked && has) {
+              c.startDates = c.startDates.filter((d) => d !== monday);
+            }
+          });
+        }
+
+        // Text for Monday
+        function buildTextScheduleForMonday(mondayStr) {
+          const monday = parseDate(mondayStr);
+          const nextMonday = new Date(monday);
+          nextMonday.setDate(monday.getDate() + 7);
+          const startStr = formatDDMMYYYY(monday) + " (17:15) CET";
+          const endStr = formatDDMMYYYY(nextMonday) + " (07:30) CET";
+
+          const activeContacts = contacts.filter(
+            (c) =>
+              Array.isArray(c.startDates) && c.startDates.includes(mondayStr)
+          );
+
+          const activeEmergencies = emergencyContacts.filter(
+            (c) =>
+              Array.isArray(c.startDates) && c.startDates.includes(mondayStr)
+          );
+
+          const lines = [];
+          lines.push("Hello Service Desk,");
+          lines.push(
+            "Please find the updated On-Call Support for MB Turkey Wintel Monitoring Services in your calendar."
+          );
+          lines.push("");
+
+          activeContacts.forEach((c, idx) => {
+            lines.push("Service:      " + (c.team || ""));
+            lines.push("Colleague:    " + (c.name || ""));
+            lines.push("Start time:   " + startStr);
+            lines.push("End time:     " + endStr);
+            if (c.phone) lines.push("Phone:        " + c.phone);
+            if (idx !== activeContacts.length - 1) lines.push("");
+          });
+
+          lines.push("");
+          lines.push("Emergency Case First contact Daimler:");
+          activeEmergencies.forEach((c) => {
+            if (!c.phone && !c.email) return;
+            lines.push(c.name || "");
+            if (c.phone) lines.push(c.phone);
+            if (c.email) lines.push(c.email);
+          });
+
+          return lines.join("\n");
+        }
+
+        // Download helper
+        function downloadFile(filename, content, mime) {
+          const blob = new Blob([content], { type: mime });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }
+
+        // ICS
+        function buildIcs(startMonday) {
+          const uid = Date.now() + "@oncall";
+          const dt = startMonday.replace(/-/g, "");
+          const ics =
+            "BEGIN:VCALENDAR\n" +
+            "VERSION:2.0\n" +
+            "PRODID:-//OnCall//EN\n" +
+            "CALSCALE:GREGORIAN\n" +
+            "METHOD:PUBLISH\n" +
+            "BEGIN:VEVENT\n" +
+            "UID:" +
+            uid +
+            "\n" +
+            "DTSTART;VALUE=DATE:" +
+            dt +
+            "\n" +
+            "DTEND;VALUE=DATE:" +
+            dt +
+            "\n" +
+            "SUMMARY:On-call schedule\n" +
+            "DESCRIPTION:" +
+            buildTextScheduleForMonday(startMonday).replace(/\n/g, "\\n") +
+            "\n" +
+            "END:VEVENT\n" +
+            "END:VCALENDAR";
+          return ics;
+        }
+
+        // Export / Import JSON
+        function exportData() {
+          const data = { contacts, emergencyContacts };
+          const json = JSON.stringify(data, null, 2);
+          downloadFile("oncall-data.json", json, "application/json");
+        }
+
+        function importData(file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            try {
+              const parsed = JSON.parse(e.target.result);
+              if (
+                Array.isArray(parsed.contacts) &&
+                Array.isArray(parsed.emergencyContacts)
+              ) {
+                contacts.length = 0;
+                contacts.push(...parsed.contacts);
+                emergencyContacts.length = 0;
+                emergencyContacts.push(...parsed.emergencyContacts);
+                renderContacts();
+                renderEmergency();
+              } else {
+                alert("Invalid file format.");
+              }
+            } catch {
+              alert("Could not read file.");
+            }
+          };
+          reader.readAsText(file);
+        }
+
+        document
+          .getElementById("exportBtn")
+          .addEventListener("click", exportData);
+        document.getElementById("importBtn").addEventListener("click", () => {
+          document.getElementById("importInput").click();
+        });
+        document
+          .getElementById("importInput")
+          .addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) importData(file);
+          });
+
+        // Generate
+        document.getElementById("generateBtn").addEventListener("click", () => {
+          const monday = mondaySelect.value;
+          const exportType = document.querySelector(
+            "input[name='exportType']:checked"
+          ).value;
+          const status = document.getElementById("status");
+          if (!monday) {
+            status.textContent = "Select a Monday first.";
+            return;
           }
-        };
-        reader.readAsText(file);
-      }
 
-      document
-        .getElementById("exportBtn")
-        .addEventListener("click", exportData);
-      document.getElementById("importBtn").addEventListener("click", () => {
-        document.getElementById("importInput").click();
-      });
-      document.getElementById("importInput").addEventListener("change", (e) => {
-        const file = e.target.files[0];
-        if (file) importData(file);
-      });
+          // Sync checkboxes to startDates
+          updateStartDatesFromCheckboxes(monday);
+          renderContacts();
+          renderEmergency();
 
-      // Generate
-      document.getElementById("generateBtn").addEventListener("click", () => {
-        const monday = mondaySelect.value;
-        const exportType = document.querySelector(
-          "input[name='exportType']:checked"
-        ).value;
-        const status = document.getElementById("status");
-        if (!monday) {
-          status.textContent = "Select a Monday first.";
-          return;
-        }
-        if (exportType === "txt") {
-          const txt = buildTextScheduleForMonday(monday);
-          downloadFile(
-            "oncall-" + monday + ".txt",
-            txt,
-            "text/plain;charset=utf-8"
-          );
-          status.textContent = "Text file downloaded.";
-        } else {
-          const ics = buildIcs(monday);
-          downloadFile(
-            "oncall-" + monday + ".ics",
-            ics,
-            "text/calendar;charset=utf-8"
-          );
-          status.textContent = "ICS file downloaded.";
-        }
+          if (exportType === "txt") {
+            const txt = buildTextScheduleForMonday(monday);
+            downloadFile(
+              "oncall-" + monday + ".txt",
+              txt,
+              "text/plain;charset=utf-8"
+            );
+            status.textContent = "Text file downloaded.";
+          } else {
+            const ics = buildIcs(monday);
+            downloadFile(
+              "oncall-" + monday + ".ics",
+              ics,
+              "text/calendar;charset=utf-8"
+            );
+            status.textContent = "ICS file downloaded.";
+          }
+        });
       });
     </script>
   </body>
